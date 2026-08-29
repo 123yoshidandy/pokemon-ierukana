@@ -16,7 +16,6 @@
       <input id="answerInput" type="text" placeholder="ポケモンの名前を入力（ひらがなOK）" enterkeyhint="send">
       <button type="submit" id="submitButton" class="primary">回答</button>
       <button type="button" id="refreshButton" title="他の人の回答を取り込む">更新</button>
-      <label class="reveal-toggle"><input type="checkbox" id="revealToggle"> 残りを表示</label>
       <button type="button" id="settingsButton">設定</button>
     </form>
     <p id="feedback" class="feedback"></p>
@@ -32,13 +31,6 @@
       <label>ニックネーム（回答した人として記録されます）
         <input id="playerInput" type="text" maxlength="20" placeholder="例: かずき">
       </label>
-      <label>共有シートの URL（Apps Script の Web アプリ URL）
-        <input id="gasUrlInput" type="url" placeholder="https://script.google.com/macros/s/…/exec">
-      </label>
-      <p class="settings-note" id="gasUrlNote">
-        空のままだと「お試しモード」（進捗はこの端末のブラウザ内にのみ保存）。
-        設定方法は README.md を参照。
-      </p>
       <div class="settings-actions">
         <button value="save" class="primary">保存</button>
         <button value="cancel" formnovalidate>キャンセル</button>

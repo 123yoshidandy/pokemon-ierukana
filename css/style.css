@@ -123,15 +123,6 @@ button.danger:hover:not(:disabled) {
   background: #fef2f2;
 }
 
-.reveal-toggle {
-  font-size: 0.85rem;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  user-select: none;
-}
-
 .feedback {
   min-height: 1.3em;
   margin: 6px 0 0;
@@ -167,14 +158,38 @@ main {
   padding: 4px 16px 48px;
 }
 
-section h2 {
+details.gen {
+  margin-top: 20px;
+}
+
+details.gen summary {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 12px;
   font-size: 1rem;
-  margin: 24px 0 8px;
+  font-weight: 700;
+  margin-bottom: 8px;
   border-left: 4px solid var(--accent);
   padding-left: 8px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none; /* 既定の三角マーカーは使わず gen-title 側で描く */
+}
+
+details.gen summary::-webkit-details-marker {
+  display: none;
+}
+
+.gen-title::before {
+  content: '▸';
+  display: inline-block;
+  width: 1.1em;
+  color: var(--muted);
+}
+
+details.gen[open] .gen-title::before {
+  content: '▾';
 }
 
 .gen-count {
@@ -219,16 +234,6 @@ section h2 {
   color: #cbd5e1;
   font-weight: 700;
   letter-spacing: 2px;
-}
-
-.card.revealed {
-  background: #fefce8;
-}
-
-.card.revealed .card-body {
-  color: #a16207;
-  font-size: 0.8rem;
-  font-weight: 600;
 }
 
 .card.pending {
@@ -287,17 +292,6 @@ dialog input {
   font-size: 0.95rem;
   border: 1px solid var(--border);
   border-radius: 8px;
-}
-
-dialog input:disabled {
-  background: #f1f5f9;
-  color: var(--muted);
-}
-
-.settings-note {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin: 8px 0;
 }
 
 .settings-actions {

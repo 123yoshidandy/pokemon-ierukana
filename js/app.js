@@ -13,12 +13,12 @@ const GEN_NAMES = {
 };
 const SPRITE_URL = (no) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${no}.png`;
 const LS_PLAYER = 'ierukana.player';
+const LS_CLOSED_GENS = 'ierukana.closedGens';
 
 const nameIndex = buildNameIndex(POKEDEX);
 const byNo = new Map(POKEDEX.map((p) => [p.no, p]));
 
 let serverAnswers = new Map(); // no -> {no, player, ts}
-let revealRemaining = false;
 let lastSyncError = null;
 
 const els = {
@@ -27,7 +27,6 @@ const els = {
   input: document.getElementById('answerInput'),
   submitButton: document.getElementById('submitButton'),
   refreshButton: document.getElementById('refreshButton'),
-  revealToggle: document.getElementById('revealToggle'),
   settingsButton: document.getElementById('settingsButton'),
   totalCount: document.getElementById('totalCount'),
   feedback: document.getElementById('feedback'),
@@ -35,13 +34,19 @@ const els = {
   playerStats: document.getElementById('playerStats'),
   settingsDialog: document.getElementById('settingsDialog'),
   playerInput: document.getElementById('playerInput'),
-  gasUrlInput: document.getElementById('gasUrlInput'),
-  gasUrlNote: document.getElementById('gasUrlNote'),
   resetButton: document.getElementById('resetButton'),
 };
 
 const cards = new Map(); // no -> {root, body, key}
 const genCounts = new Map(); // gen -> {el, total, done}
+
+// 折りたたんだ世代の記憶（リロード後も維持）
+let closedGens;
+try {
+  closedGens = new Set(JSON.parse(localStorage.getItem(LS_CLOSED_GENS) || '[]'));
+} catch {
+  closedGens = new Set();
+}
 
 function getPlayer() {
   return (localStorage.getItem(LS_PLAYER) || '').trim();
@@ -56,18 +61,28 @@ function buildGrid() {
   for (const p of POKEDEX) {
     if (p.gen !== currentGen) {
       currentGen = p.gen;
-      const section = document.createElement('section');
-      const h2 = document.createElement('h2');
-      h2.textContent = `第${currentGen}世代 ${GEN_NAMES[currentGen] || ''}`;
+      const gen = currentGen;
+      const details = document.createElement('details');
+      details.className = 'gen';
+      details.open = !closedGens.has(gen);
+      const summary = document.createElement('summary');
+      const title = document.createElement('span');
+      title.className = 'gen-title';
+      title.textContent = `第${gen}世代 ${GEN_NAMES[gen] || ''}`;
       const count = document.createElement('span');
       count.className = 'gen-count';
-      h2.appendChild(count);
-      genCounts.set(currentGen, { el: count, total: 0, done: 0 });
-      section.appendChild(h2);
+      summary.append(title, count);
+      genCounts.set(gen, { el: count, total: 0, done: 0 });
+      details.appendChild(summary);
       gridEl = document.createElement('div');
       gridEl.className = 'grid';
-      section.appendChild(gridEl);
-      frag.appendChild(section);
+      details.appendChild(gridEl);
+      details.addEventListener('toggle', () => {
+        if (details.open) closedGens.delete(gen);
+        else closedGens.add(gen);
+        localStorage.setItem(LS_CLOSED_GENS, JSON.stringify([...closedGens]));
+      });
+      frag.appendChild(details);
     }
     genCounts.get(p.gen).total += 1;
 
@@ -91,10 +106,6 @@ function renderCard(card, p, state, answer) {
   card.body.textContent = '';
   if (state === 'hidden') {
     card.body.textContent = '???';
-    return;
-  }
-  if (state === 'revealed') {
-    card.body.textContent = p.name;
     return;
   }
   const img = document.createElement('img');
@@ -130,7 +141,7 @@ function applyState() {
       genCounts.get(p.gen).done += 1;
       perPlayer.set(answer.player, (perPlayer.get(answer.player) || 0) + 1);
     }
-    const state = answer ? (answer.pending ? 'pending' : 'answered') : revealRemaining ? 'revealed' : 'hidden';
+    const state = answer ? (answer.pending ? 'pending' : 'answered') : 'hidden';
     const key = `${state}|${answer ? answer.player : ''}`;
     const card = cards.get(p.no);
     if (card.key === key) continue;
@@ -155,14 +166,14 @@ function renderPlayerStats(perPlayer) {
   els.playerStats.textContent = '貢献 — ' + items.join(' ／ ');
 }
 
+// 通常時は何も表示せず、注意が必要なときだけ出す
 function updateSyncStatus() {
   const pending = Api.pendingEntries().length;
   const parts = [];
-  parts.push(Api.isMock() ? '⚠ お試しモード（進捗はこの端末のブラウザ内にのみ保存）' : '☁ 共有シートに接続');
   if (pending) parts.push(`未同期 ${pending} 件（次の回答か「更新」で再送します）`);
   if (lastSyncError) parts.push(`同期エラー: ${lastSyncError}`);
   els.syncStatus.textContent = parts.join(' ／ ');
-  els.syncStatus.classList.toggle('has-warning', Api.isMock() || pending > 0 || Boolean(lastSyncError));
+  els.syncStatus.classList.toggle('has-warning', parts.length > 0);
 }
 
 function showFeedback(kind, message) {
@@ -237,24 +248,10 @@ els.form.addEventListener('submit', async (ev) => {
 
 els.refreshButton.addEventListener('click', refresh);
 
-els.revealToggle.addEventListener('change', () => {
-  revealRemaining = els.revealToggle.checked;
-  applyState();
-});
-
 els.settingsButton.addEventListener('click', () => openSettings());
 
 function openSettings() {
   els.playerInput.value = getPlayer();
-  if (Api.configGasUrl()) {
-    // config.js で固定されている場合は変更させない
-    els.gasUrlInput.value = Api.configGasUrl();
-    els.gasUrlInput.disabled = true;
-    els.gasUrlNote.textContent = '共有シートの URL は js/config.js で設定済みです。';
-  } else {
-    els.gasUrlInput.value = Api.storedGasUrl();
-    els.gasUrlInput.disabled = false;
-  }
   els.settingsDialog.showModal();
   if (!getPlayer()) els.playerInput.focus();
 }
@@ -263,13 +260,11 @@ els.settingsDialog.addEventListener('close', () => {
   if (els.settingsDialog.returnValue !== 'save') return;
   const name = els.playerInput.value.trim();
   if (name) localStorage.setItem(LS_PLAYER, name);
-  if (!els.gasUrlInput.disabled) Api.setGasUrl(els.gasUrlInput.value.trim());
   refresh();
 });
 
 els.resetButton.addEventListener('click', async () => {
-  const target = Api.isMock() ? 'この端末の進捗' : '共有シートの全員の進捗';
-  if (!confirm(`${target}をリセットして最初からやり直します。よろしいですか？`)) return;
+  if (!confirm('共有シートの全員の進捗をリセットして最初からやり直します。よろしいですか？')) return;
   els.settingsDialog.close('cancel');
   setBusy(true);
   try {
@@ -286,6 +281,14 @@ els.resetButton.addEventListener('click', async () => {
 // ---- 起動 ----
 
 buildGrid();
-applyState();
-if (!getPlayer()) openSettings();
-refresh();
+if (!Api.hasUrl()) {
+  // config.js が未設定のまま配布された場合は操作不能にしてエラーを出す
+  els.input.disabled = true;
+  setBusy(true);
+  lastSyncError = '共有シートの URL が未設定です（js/config.js の GAS_URL を設定してください）';
+  applyState();
+} else {
+  applyState();
+  if (!getPlayer()) openSettings();
+  refresh();
+}
