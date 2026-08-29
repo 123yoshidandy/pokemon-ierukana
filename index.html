@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>全ポケモン言えるかな（協力版）</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-top">
+      <h1>全ポケモン言えるかな <span class="subtitle">協力版</span></h1>
+      <div class="total-counter"><span id="totalCount">0</span><span class="total-max"> / 1025</span></div>
+    </div>
+    <form id="answerForm" class="answer-form" autocomplete="off">
+      <input id="answerInput" type="text" placeholder="ポケモンの名前を入力（ひらがなOK）" enterkeyhint="send">
+      <button type="submit" id="submitButton" class="primary">回答</button>
+      <button type="button" id="refreshButton" title="他の人の回答を取り込む">更新</button>
+      <label class="reveal-toggle"><input type="checkbox" id="revealToggle"> 残りを表示</label>
+      <button type="button" id="settingsButton">設定</button>
+    </form>
+    <p id="feedback" class="feedback"></p>
+    <p id="syncStatus" class="sync-status"></p>
+    <p id="playerStats" class="player-stats"></p>
+  </header>
+
+  <main id="dex"></main>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" id="settingsForm">
+      <h2>設定</h2>
+      <label>ニックネーム（回答した人として記録されます）
+        <input id="playerInput" type="text" maxlength="20" placeholder="例: かずき">
+      </label>
+      <label>共有シートの URL（Apps Script の Web アプリ URL）
+        <input id="gasUrlInput" type="url" placeholder="https://script.google.com/macros/s/…/exec">
+      </label>
+      <p class="settings-note" id="gasUrlNote">
+        空のままだと「お試しモード」（進捗はこの端末のブラウザ内にのみ保存）。
+        設定方法は README.md を参照。
+      </p>
+      <div class="settings-actions">
+        <button value="save" class="primary">保存</button>
+        <button value="cancel" formnovalidate>キャンセル</button>
+      </div>
+      <hr>
+      <button type="button" id="resetButton" class="danger">みんなの進捗を最初からやり直す</button>
+    </form>
+  </dialog>
+
+  <footer class="app-footer">
+    データ・画像: <a href="https://pokeapi.co/" target="_blank" rel="noopener">PokeAPI</a>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/pokedex.js"></script>
+  <script src="js/normalize.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
