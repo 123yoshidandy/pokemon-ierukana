@@ -1,0 +1,327 @@
+:root {
+  --bg: #f1f5f9;
+  --panel: #ffffff;
+  --border: #d8dfe9;
+  --text: #1e293b;
+  --muted: #64748b;
+  --accent: #e3350d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ---- ヘッダー ---- */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.08);
+  padding: 10px 16px;
+}
+
+.header-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+h1 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.75rem;
+  color: var(--accent);
+  border: 1px solid currentColor;
+  padding: 1px 8px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.total-counter {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.total-max {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.answer-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#answerInput {
+  flex: 1 1 220px;
+  padding: 8px 10px;
+  font-size: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+#answerInput:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+button {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #c62d0b;
+}
+
+button.danger {
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+button.danger:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.reveal-toggle {
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.feedback {
+  min-height: 1.3em;
+  margin: 6px 0 0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.feedback.ok { color: #15803d; }
+.feedback.ng { color: #b91c1c; }
+.feedback.dup { color: #b45309; }
+
+.sync-status {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.sync-status.has-warning {
+  color: #b45309;
+}
+
+.player-stats {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+/* ---- 図鑑グリッド ---- */
+
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 4px 16px 48px;
+}
+
+section h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 1rem;
+  margin: 24px 0 8px;
+  border-left: 4px solid var(--accent);
+  padding-left: 8px;
+}
+
+.gen-count {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-no {
+  font-size: 0.66rem;
+  color: #94a3b8;
+}
+
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  text-align: center;
+}
+
+.card.hidden .card-body {
+  color: #cbd5e1;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.card.revealed {
+  background: #fefce8;
+}
+
+.card.revealed .card-body {
+  color: #a16207;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.card.pending {
+  border-style: dashed;
+  border-color: #f59e0b;
+}
+
+.card img {
+  width: 68px;
+  height: 68px;
+  image-rendering: pixelated;
+}
+
+.card-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.card-player {
+  font-size: 0.66rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* ---- 設定ダイアログ ---- */
+
+dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 20px;
+  width: min(440px, 92vw);
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.25);
+}
+
+dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+dialog h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+dialog label {
+  display: block;
+  font-size: 0.85rem;
+  margin: 12px 0 4px;
+  color: #334155;
+}
+
+dialog input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+dialog input:disabled {
+  background: #f1f5f9;
+  color: var(--muted);
+}
+
+.settings-note {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 8px 0;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+dialog hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0 12px;
+}
+
+/* ---- フッター ---- */
+
+.app-footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 16px 0 32px;
+}
+
+.app-footer a {
+  color: inherit;
+}
