@@ -119,15 +119,16 @@ function renderCard(card, p, state, answer) {
   nameEl.textContent = p.name;
   const playerEl = document.createElement('div');
   playerEl.className = 'card-player';
-  playerEl.textContent = state === 'pending' ? `${answer.player}（未同期）` : answer.player;
+  playerEl.textContent = answer.player;
   card.body.append(img, nameEl, playerEl);
 }
 
 // サーバー状態 + 未送信キューを画面へ反映する
 function applyState() {
+  // 送信前の回答も確定済みと同じ見た目で描く（サーバー確定時の描き直しをなくす）
   const pendingMap = new Map();
   for (const e of Api.pendingEntries()) {
-    if (!serverAnswers.has(e.no)) pendingMap.set(e.no, { player: e.player, pending: true });
+    if (!serverAnswers.has(e.no)) pendingMap.set(e.no, { player: e.player });
   }
 
   let total = 0;
@@ -141,7 +142,7 @@ function applyState() {
       genCounts.get(p.gen).done += 1;
       perPlayer.set(answer.player, (perPlayer.get(answer.player) || 0) + 1);
     }
-    const state = answer ? (answer.pending ? 'pending' : 'answered') : 'hidden';
+    const state = answer ? 'answered' : 'hidden';
     const key = `${state}|${answer ? answer.player : ''}`;
     const card = cards.get(p.no);
     if (card.key === key) continue;
@@ -166,12 +167,15 @@ function renderPlayerStats(perPlayer) {
   els.playerStats.textContent = '貢献 — ' + items.join(' ／ ');
 }
 
-// 通常時は何も表示せず、注意が必要なときだけ出す
+// 通常時は何も表示せず、同期エラーが起きているときだけ出す
+// （正常な送信中の回答は表示しない。失敗してキューに残ったときだけ知らせる）
 function updateSyncStatus() {
-  const pending = Api.pendingEntries().length;
   const parts = [];
-  if (pending) parts.push(`未同期 ${pending} 件（次の回答か「更新」で再送します）`);
-  if (lastSyncError) parts.push(`同期エラー: ${lastSyncError}`);
+  if (lastSyncError) {
+    parts.push(`同期エラー: ${lastSyncError}`);
+    const pending = Api.pendingEntries().length;
+    if (pending) parts.push(`未送信 ${pending} 件は次の回答か「更新」で自動再送します`);
+  }
   els.syncStatus.textContent = parts.join(' ／ ');
   els.syncStatus.classList.toggle('has-warning', parts.length > 0);
 }
@@ -235,9 +239,10 @@ els.form.addEventListener('submit', async (ev) => {
   els.input.value = '';
   showFeedback('ok', `No.${no} ${byNo.get(no).name} ゲット！`);
   const submitting = Api.submitAnswer(no, player); // この時点でキュー投入済み
-  applyState(); // 通信を待たずに即時描画（pending 表示）
+  applyState(); // 通信を待たずに即時描画
   try {
-    setServerAnswers(await submitting);
+    const answers = await submitting;
+    if (answers) setServerAnswers(answers); // null = 先行リクエストが送信済み（通信なし）
     lastSyncError = null;
   } catch (err) {
     lastSyncError = err.message || String(err);

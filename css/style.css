@@ -137,6 +137,7 @@ button.danger:hover:not(:disabled) {
 .sync-status {
   margin: 2px 0 0;
   font-size: 0.75rem;
+  min-height: 1.3em; /* 表示/非表示でヘッダーの高さが変わらないよう常に確保 */
   color: var(--muted);
 }
 
@@ -234,11 +235,6 @@ details.gen[open] .gen-title::before {
   color: #cbd5e1;
   font-weight: 700;
   letter-spacing: 2px;
-}
-
-.card.pending {
-  border-style: dashed;
-  border-color: #f59e0b;
 }
 
 .card img {

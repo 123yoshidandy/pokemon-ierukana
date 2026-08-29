@@ -68,27 +68,28 @@ const Api = (() => {
     return run;
   }
 
-  // キューの回答を送信してから最新の全回答を返す。キューが空なら取得のみ。
-  function sync() {
-    return serialized(async () => {
-      const queue = pendingEntries();
-      let data;
-      if (queue.length) {
-        data = await gasPost({ action: 'answer', entries: queue });
-        // 送信できた分だけキューから消す（送信中に増えた分は残す）
-        const sent = new Set(queue.map((e) => e.no));
-        saveQueue(pendingEntries().filter((e) => !sent.has(e.no)));
-      } else {
-        data = await gasGet();
-      }
-      return data.answers;
-    });
+  // キューを送信して最新の全回答を返す。送るものが無ければ null（通信なし）。
+  // serialized() 内から呼ぶこと。
+  async function sendQueue() {
+    const queue = pendingEntries();
+    if (!queue.length) return null;
+    const data = await gasPost({ action: 'answer', entries: queue });
+    // 送信できた分だけキューから消す（送信中に増えた分は残す）
+    const sent = new Set(queue.map((e) => e.no));
+    saveQueue(pendingEntries().filter((e) => !sent.has(e.no)));
+    return data.answers;
   }
 
-  // 回答をキューに積んで同期。通信に失敗してもキューに残るので消えない。
+  // 手動更新・起動時: キューを送信し、無ければ取得のみ。
+  function sync() {
+    return serialized(async () => (await sendQueue()) ?? (await gasGet()).answers);
+  }
+
+  // 回答時: キューに積んで送信。通信に失敗してもキューに残るので消えない。
+  // 先行リクエストがまとめて送信済みだった場合は通信せず null を返す。
   function submitAnswer(no, player) {
     enqueue({ no, player, ts: new Date().toISOString() });
-    return sync();
+    return serialized(sendQueue);
   }
 
   function reset() {
