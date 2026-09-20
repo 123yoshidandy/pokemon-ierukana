@@ -43,15 +43,6 @@ h1 {
   margin: 0;
 }
 
-.subtitle {
-  font-size: 0.75rem;
-  color: var(--accent);
-  border: 1px solid currentColor;
-  padding: 1px 8px;
-  border-radius: 999px;
-  vertical-align: middle;
-}
-
 .total-counter {
   font-size: 1.35rem;
   font-weight: 700;
