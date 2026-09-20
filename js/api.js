@@ -3,6 +3,7 @@
 // 共有シート（GAS）との同期クライアント。
 const Api = (() => {
   const LS_QUEUE = 'ierukana.pendingQueue';
+  const LS_ANSWERS = 'ierukana.answersCache'; // 直近のサーバー全回答。次回起動時に通信を待たず描くため
 
   function gasUrl() {
     return (typeof CONFIG !== 'undefined' && CONFIG.GAS_URL ? CONFIG.GAS_URL : '').trim();
@@ -57,7 +58,21 @@ const Api = (() => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'サーバーエラー');
+    // 取得・回答・リセットの全応答が answers を含むので、ここ 1 箇所で保存すれば漏れない
+    if (Array.isArray(data.answers)) {
+      try {
+        localStorage.setItem(LS_ANSWERS, JSON.stringify(data.answers));
+      } catch {
+        // 容量超過などで保存できなくても同期自体は成功しているので無視する
+      }
+    }
     return data;
+  }
+
+  // 前回同期時の回答一覧（無ければ空）。壊れていれば空として扱い、次の同期で上書きされる
+  function cachedAnswers() {
+    const list = loadJson(LS_ANSWERS, []);
+    return Array.isArray(list) ? list : [];
   }
 
   // 同期リクエストを直列化する（連打しても同時に複数の通信を走らせない）
@@ -103,6 +118,7 @@ const Api = (() => {
   return {
     hasUrl,
     pendingEntries,
+    cachedAnswers,
     submitAnswer,
     sync,
     reset,

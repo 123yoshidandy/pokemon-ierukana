@@ -280,6 +280,11 @@ details.gen[open] .gen-title::before {
   image-rendering: pixelated;
 }
 
+/* 初回同期まで src を付けていない画像は alt 文字を出さず、枠だけ確保する */
+.card img:not([src]) {
+  visibility: hidden;
+}
+
 .card-name {
   font-size: 0.78rem;
   font-weight: 700;

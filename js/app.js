@@ -21,6 +21,8 @@ const byNo = new Map(POKEDEX.map((p) => [p.no, p]));
 
 let serverAnswers = new Map(); // no -> {no, player, ts}
 let lastSyncError = null;
+// 起動時の初回同期が終わるまで true。キャッシュ描画で生まれる画像リクエストが同期と回線を取り合わないようにする
+let imgHold = false;
 
 const els = {
   dex: document.getElementById('dex'),
@@ -123,7 +125,9 @@ function renderCard(card, p, state, answer) {
     return;
   }
   const img = document.createElement('img');
-  img.src = SPRITE_URL(p.no);
+  // 待機中は src を付けず data-src に持たせ、初回同期後に releaseImages() でまとめて付ける
+  if (imgHold) img.dataset.src = SPRITE_URL(p.no);
+  else img.src = SPRITE_URL(p.no);
   img.alt = p.name;
   img.loading = 'lazy';
   img.width = 68;
@@ -269,6 +273,15 @@ async function refresh() {
   applyState();
 }
 
+// 初回同期の完了後に、待たせていた画像の読み込みを始める（以降に描くカードは即 src が付く）
+function releaseImages() {
+  imgHold = false;
+  for (const img of document.querySelectorAll('.card img[data-src]')) {
+    img.src = img.dataset.src;
+    delete img.dataset.src;
+  }
+}
+
 // ---- イベント ----
 
 els.form.addEventListener('submit', async (ev) => {
@@ -363,7 +376,9 @@ if (!Api.hasUrl()) {
   lastSyncError = '共有シートの URL が未設定です（js/config.js の GAS_URL を設定してください）';
   applyState();
 } else {
+  setServerAnswers(Api.cachedAnswers()); // 前回同期時の状態を先に描き、GAS の応答を待たせない
+  imgHold = true; // applyState より前に立てる（キャッシュ分の画像を待機させるため）
   applyState();
   if (!getPlayer()) openSettings();
-  refresh();
+  refresh().then(releaseImages); // refresh はエラーを内部で捕捉するので必ず then に来る
 }
