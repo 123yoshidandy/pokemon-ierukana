@@ -15,6 +15,8 @@ const SPRITE_URL = (no) => `https://raw.githubusercontent.com/PokeAPI/sprites/ma
 const LS_PLAYER = 'ierukana.player';
 const LS_CLOSED_GENS = 'ierukana.closedGens';
 const LS_TYPE_HINT = 'ierukana.typeHint';
+const LS_ROOM = 'ierukana.room'; // 最後に遊んだ部屋 ID。起動時にこの部屋を開く
+const LS_ROOMS = 'ierukana.rooms'; // 入室済みの部屋 [{id, players}]（最近遊んだ順）。切替 UI に出す
 
 const nameIndex = buildNameIndex(POKEDEX);
 const byNo = new Map(POKEDEX.map((p) => [p.no, p]));
@@ -23,6 +25,12 @@ let serverAnswers = new Map(); // no -> {no, player, ts}
 let lastSyncError = null;
 // 起動時の初回同期が終わるまで true。キャッシュ描画で生まれる画像リクエストが同期と回線を取り合わないようにする
 let imgHold = false;
+
+// 今いる部屋（4 桁の文字列。先頭 0 を保つため数値化しない）。DEFAULT_ROOM は api.js で定義
+let currentRoom = localStorage.getItem(LS_ROOM) || DEFAULT_ROOM;
+let rooms = Api.loadJson(LS_ROOMS, []);
+if (!Array.isArray(rooms)) rooms = [];
+if (!rooms.some((r) => r.id === DEFAULT_ROOM)) rooms.push({ id: DEFAULT_ROOM, players: [] }); // みんなの部屋は常に入室済み
 
 const els = {
   dex: document.getElementById('dex'),
@@ -42,6 +50,13 @@ const els = {
   historyDialog: document.getElementById('historyDialog'),
   historyList: document.getElementById('historyList'),
   historyNote: document.getElementById('historyNote'),
+  roomBadge: document.getElementById('roomBadge'),
+  roomForm: document.getElementById('roomForm'),
+  roomList: document.getElementById('roomList'),
+  roomInput: document.getElementById('roomInput'),
+  joinRoomButton: document.getElementById('joinRoomButton'),
+  createRoomButton: document.getElementById('createRoomButton'),
+  roomMessage: document.getElementById('roomMessage'),
 };
 
 const cards = new Map(); // no -> {root, body, key}
@@ -60,6 +75,10 @@ let typeHint = localStorage.getItem(LS_TYPE_HINT) === '1';
 
 function getPlayer() {
   return (localStorage.getItem(LS_PLAYER) || '').trim();
+}
+
+function roomName(id) {
+  return id === DEFAULT_ROOM ? 'みんなの部屋' : `部屋 ${id}`;
 }
 
 // ---- 描画 ----
@@ -145,7 +164,7 @@ function renderCard(card, p, state, answer) {
 function applyState() {
   // 送信前の回答も確定済みと同じ見た目で描く（サーバー確定時の描き直しをなくす）
   const pendingMap = new Map();
-  for (const e of Api.pendingEntries()) {
+  for (const e of Api.pendingEntries(currentRoom)) {
     if (!serverAnswers.has(e.no)) pendingMap.set(e.no, { player: e.player });
   }
 
@@ -171,6 +190,7 @@ function applyState() {
 
   els.totalCount.textContent = total;
   for (const g of genCounts.values()) g.el.textContent = `${g.done} / ${g.total}`;
+  saveRoomPlayers(perPlayer);
   renderPlayerStats(perPlayer);
   updateSyncStatus();
 }
@@ -202,7 +222,7 @@ function formatHistoryTime(ts) {
 function renderHistory() {
   // applyState と同様に、未送信キューの回答も確定分に重ねて表示する
   const merged = new Map(serverAnswers);
-  for (const e of Api.pendingEntries()) {
+  for (const e of Api.pendingEntries(currentRoom)) {
     if (!merged.has(e.no)) merged.set(e.no, e);
   }
   const entries = [...merged.values()].sort((a, b) => new Date(b.ts) - new Date(a.ts));
@@ -238,7 +258,7 @@ function updateSyncStatus() {
   const parts = [];
   if (lastSyncError) {
     parts.push(`同期エラー: ${lastSyncError}`);
-    const pending = Api.pendingEntries().length;
+    const pending = Api.pendingEntries(currentRoom).length;
     if (pending) parts.push(`未送信 ${pending} 件は次の回答か「更新」で自動再送します`);
   }
   els.syncStatus.textContent = parts.join(' ／ ');
@@ -259,16 +279,129 @@ function setBusy(busy) {
   els.refreshButton.disabled = busy;
 }
 
+// ---- 部屋 ----
+
+// 部屋一覧に回答者名（回答数の多い順に最大 5 名）を残し、切替 UI で「誰と遊んだ部屋か」を見せる
+function saveRoomPlayers(perPlayer) {
+  const room = rooms.find((r) => r.id === currentRoom);
+  if (!room) return;
+  // リセット直後などで回答が無いときは前回の名前を残す（誰と遊んだ部屋かは変わらない）
+  if (perPlayer.size) {
+    room.players = [...perPlayer.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name]) => name);
+  }
+  localStorage.setItem(LS_ROOMS, JSON.stringify(rooms));
+}
+
+function renderRoomBadge() {
+  els.roomBadge.textContent = roomName(currentRoom);
+}
+
+// 入室済みの部屋を最近遊んだ順に並べる（今いる部屋は選べない）
+function renderRoomList() {
+  els.roomList.textContent = '';
+  for (const r of rooms) {
+    const current = r.id === currentRoom;
+    const btn = document.createElement('button');
+    btn.type = 'button'; // roomForm の submit（入室）と区別する
+    btn.className = 'room-item' + (current ? ' current' : '');
+    btn.disabled = current;
+    btn.dataset.room = r.id;
+    const id = document.createElement('span');
+    id.className = 'room-item-id';
+    id.textContent = roomName(r.id);
+    const players = document.createElement('span');
+    players.className = 'room-item-players';
+    const names = (r.players || []).join('、') || 'まだ回答なし';
+    players.textContent = current ? `${names}（今いる部屋）` : names;
+    btn.append(id, players);
+    const li = document.createElement('li');
+    li.appendChild(btn);
+    els.roomList.appendChild(li);
+  }
+}
+
+// 部屋を切り替える。answers はその部屋の最新回答（入室時の取得結果。作成直後は空）
+function enterRoom(id, answers) {
+  currentRoom = id;
+  localStorage.setItem(LS_ROOM, id);
+  const known = rooms.find((r) => r.id === id) || { id, players: [] };
+  rooms = [known, ...rooms.filter((r) => r !== known)]; // 最近遊んだ順に
+  setServerAnswers(answers);
+  lastSyncError = null;
+  renderRoomBadge();
+  applyState(); // 中の saveRoomPlayers が rooms を保存する
+}
+
+function setRoomMessage(text, isError) {
+  els.roomMessage.textContent = text;
+  els.roomMessage.classList.toggle('ng', Boolean(isError));
+}
+
+function setRoomBusy(busy) {
+  els.joinRoomButton.disabled = busy;
+  els.createRoomButton.disabled = busy;
+  els.roomList.classList.toggle('busy', busy);
+}
+
+// 入室・作成の共通処理。成功したらダイアログを閉じて図鑑を新しい部屋に切り替える。
+// 失敗はダイアログ内に出す（閉じてしまうと ID を打ち直せないため）
+async function roomAction(task) {
+  setRoomBusy(true);
+  setRoomMessage('通信中…');
+  try {
+    const message = await task();
+    setRoomMessage('');
+    els.settingsDialog.close('room'); // 入力途中のニックネーム等も close ハンドラで保存される
+    showFeedback('ok', message);
+  } catch (err) {
+    setRoomMessage(err.message || String(err), true);
+  }
+  setRoomBusy(false);
+}
+
+function joinRoom(id) {
+  if (!/^\d{4}$/.test(id)) {
+    setRoomMessage('部屋 ID は 4 桁の数字です', true);
+    return;
+  }
+  // sync は部屋が無ければ reject するので存在確認を兼ねる。その部屋の未送信分があればここで送られる
+  roomAction(async () => {
+    enterRoom(id, await Api.sync(id));
+    return `${roomName(id)} に入室しました`;
+  });
+}
+
+function createRoom() {
+  roomAction(async () => {
+    const id = await Api.createRoom();
+    enterRoom(id, []);
+    return `部屋 ${id} を作りました。この番号を伝えると一緒に遊べます`;
+  });
+}
+
 // ---- 同期 ----
 
-async function refresh() {
-  setBusy(true);
+// 部屋の通信結果を図鑑へ反映する。応答を待つ間に別の部屋へ切り替わっていたら旧部屋の結果なので捨てる。反映できたら true
+async function applyResult(room, promise) {
   try {
-    setServerAnswers(await Api.sync());
+    const answers = await promise;
+    if (room !== currentRoom) return false;
+    if (answers) setServerAnswers(answers); // null = 先行リクエストが送信済み（通信なし）
     lastSyncError = null;
+    return true;
   } catch (err) {
-    lastSyncError = err.message || String(err);
+    if (room === currentRoom) lastSyncError = err.message || String(err);
+    return false;
   }
+}
+
+async function refresh() {
+  const room = currentRoom;
+  setBusy(true);
+  await applyResult(room, Api.sync(room));
   setBusy(false);
   applyState();
 }
@@ -303,7 +436,7 @@ els.form.addEventListener('submit', async (ev) => {
     return;
   }
 
-  const answered = serverAnswers.get(no) || Api.pendingEntries().find((e) => e.no === no);
+  const answered = serverAnswers.get(no) || Api.pendingEntries(currentRoom).find((e) => e.no === no);
   if (answered) {
     showFeedback('dup', `${byNo.get(no).name} は ${answered.player} さんが回答済み！`);
     els.input.select();
@@ -312,15 +445,10 @@ els.form.addEventListener('submit', async (ev) => {
 
   els.input.value = '';
   showFeedback('ok', `No.${no} ${byNo.get(no).name} ゲット！`);
-  const submitting = Api.submitAnswer(no, player); // この時点でキュー投入済み
+  const room = currentRoom;
+  const submitting = Api.submitAnswer(room, no, player); // この時点でキュー投入済み
   applyState(); // 通信を待たずに即時描画
-  try {
-    const answers = await submitting;
-    if (answers) setServerAnswers(answers); // null = 先行リクエストが送信済み（通信なし）
-    lastSyncError = null;
-  } catch (err) {
-    lastSyncError = err.message || String(err);
-  }
+  await applyResult(room, submitting);
   applyState();
   els.input.focus();
 });
@@ -335,32 +463,50 @@ els.playerStats.addEventListener('click', () => {
 els.settingsButton.addEventListener('click', () => openSettings());
 
 function openSettings() {
+  els.settingsDialog.returnValue = ''; // 前回の 'save'/'room' が残ると Esc で閉じても保存扱いになる
   els.playerInput.value = getPlayer();
   els.typeHintInput.checked = typeHint;
+  els.roomInput.value = '';
+  setRoomMessage('');
+  renderRoomList();
   els.settingsDialog.showModal();
   if (!getPlayer()) els.playerInput.focus();
 }
 
 els.settingsDialog.addEventListener('close', () => {
-  if (els.settingsDialog.returnValue !== 'save') return;
+  const rv = els.settingsDialog.returnValue;
+  // 'room' = 入室・作成で閉じた。入力途中のニックネームが消えないよう 'save' と同じく保存する
+  if (rv !== 'save' && rv !== 'room') return;
   const name = els.playerInput.value.trim();
   if (name) localStorage.setItem(LS_PLAYER, name);
   typeHint = els.typeHintInput.checked;
   localStorage.setItem(LS_TYPE_HINT, typeHint ? '1' : '0');
   applyState(); // 通信を待たずヒント切替を即時反映（refresh 内の applyState はキー一致で no-op）
-  refresh();
+  if (rv === 'save') refresh(); // 入室直後は取得済みなので再同期しない
+});
+
+els.roomBadge.addEventListener('click', () => openSettings());
+
+// 「入室」ボタンと ID 欄の Enter が同じ submit に集まる
+els.roomForm.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  joinRoom(els.roomInput.value.trim());
+});
+
+els.createRoomButton.addEventListener('click', createRoom);
+
+els.roomList.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-room]');
+  if (btn) joinRoom(btn.dataset.room);
 });
 
 els.resetButton.addEventListener('click', async () => {
-  if (!confirm('共有シートの全員の進捗をリセットして最初からやり直します。よろしいですか？')) return;
+  const room = currentRoom;
+  if (!confirm(`${roomName(room)} の全員の進捗をリセットして最初からやり直します。よろしいですか？`)) return;
   els.settingsDialog.close('cancel');
   setBusy(true);
-  try {
-    setServerAnswers(await Api.reset());
-    lastSyncError = null;
+  if (await applyResult(room, Api.reset(room))) {
     showFeedback('ok', 'リセットしました。あたらしい冒険のはじまり！');
-  } catch (err) {
-    lastSyncError = err.message || String(err);
   }
   setBusy(false);
   applyState();
@@ -369,6 +515,7 @@ els.resetButton.addEventListener('click', async () => {
 // ---- 起動 ----
 
 buildGrid();
+renderRoomBadge();
 if (!Api.hasUrl()) {
   // config.js が未設定のまま配布された場合は操作不能にしてエラーを出す
   els.input.disabled = true;
@@ -376,7 +523,7 @@ if (!Api.hasUrl()) {
   lastSyncError = '共有シートの URL が未設定です（js/config.js の GAS_URL を設定してください）';
   applyState();
 } else {
-  setServerAnswers(Api.cachedAnswers()); // 前回同期時の状態を先に描き、GAS の応答を待たせない
+  setServerAnswers(Api.cachedAnswers(currentRoom)); // 前回同期時の状態を先に描き、GAS の応答を待たせない
   imgHold = true; // applyState より前に立てる（キャッシュ分の画像を待機させるため）
   applyState();
   if (!getPlayer()) openSettings();

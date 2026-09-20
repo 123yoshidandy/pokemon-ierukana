@@ -400,6 +400,99 @@ dialog hr {
   color: var(--muted);
 }
 
+/* ---- 部屋 ---- */
+
+.title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* 現在の部屋を示すピル。ボタンだが小さく丸く */
+.room-badge {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+dialog h3 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
+.room-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+
+/* 入室・作成の通信中は一覧を触れなくする */
+.room-list.busy {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.room-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+  text-align: left;
+}
+
+.room-item-id {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.room-item-players {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+/* 今いる部屋: 選べない（disabled）が薄くはせず、枠で強調する */
+.room-item.current:disabled {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.room-join {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* dialog input[type="text"] の幅 100% / margin-top を打ち消してボタンと横並びに */
+#roomInput {
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.room-message {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.room-message.ng {
+  color: #b91c1c;
+}
+
+.room-message:empty {
+  display: none;
+}
+
 /* ---- フッター ---- */
 
 .app-footer {

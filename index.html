@@ -9,7 +9,11 @@
 <body>
   <header class="app-header">
     <div class="header-top">
-      <h1>ポケモンいえるかな</h1>
+      <div class="title-row">
+        <h1>ポケモンいえるかな</h1>
+        <!-- 部屋 ID は共有するため常時見せる。タップで設定（部屋の切替）を開く -->
+        <button type="button" id="roomBadge" class="room-badge" title="部屋を切り替える"></button>
+      </div>
       <div class="total-counter"><span id="totalCount">0</span><span class="total-max"> / 1025</span></div>
     </div>
     <form id="answerForm" class="answer-form" autocomplete="off">
@@ -49,9 +53,22 @@
         <button value="save" class="primary">保存</button>
         <button value="cancel" formnovalidate>キャンセル</button>
       </div>
-      <hr>
-      <button type="button" id="resetButton" class="danger">みんなの進捗を最初からやり直す</button>
     </form>
+    <hr>
+    <!-- 部屋の操作は保存ボタンと独立に即時実行するため method="dialog" のフォームの外に置く
+         （中に置くとボタンが submit 扱いでダイアログが閉じ、ID 欄の Enter は「保存」になる） -->
+    <form id="roomForm">
+      <h3>部屋</h3>
+      <ul id="roomList" class="room-list"></ul>
+      <div class="room-join">
+        <input id="roomInput" type="text" inputmode="numeric" maxlength="4" placeholder="部屋 ID（4桁）" enterkeyhint="go" autocomplete="off">
+        <button type="submit" id="joinRoomButton">入室</button>
+      </div>
+      <button type="button" id="createRoomButton">新しい部屋を作る</button>
+      <p id="roomMessage" class="room-message"></p>
+    </form>
+    <hr>
+    <button type="button" id="resetButton" class="danger">この部屋の進捗を最初からやり直す</button>
   </dialog>
 
   <dialog id="historyDialog">
