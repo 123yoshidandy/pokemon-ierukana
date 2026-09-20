@@ -41,13 +41,17 @@
 
   <dialog id="settingsDialog">
     <form method="dialog" id="settingsForm">
-      <h2>設定</h2>
+      <!-- showModal() は最初のフォーカス可能要素（入力欄）にフォーカスしてスマホでキーボードが出るため、見出しに向ける -->
+      <h2 tabindex="-1" autofocus>設定</h2>
       <label>ニックネーム（回答した人として記録されます）
         <input id="playerInput" type="text" maxlength="20" placeholder="例: かずき">
       </label>
       <label class="checkbox-label">
         <input id="typeHintInput" type="checkbox">
         タイプヒントを表示（未回答のポケモンのタイプを出す）
+      </label>
+      <label>この部屋の名前（自分の端末だけに表示されます）
+        <input id="roomNameInput" type="text" maxlength="20" placeholder="例: 会社の同期">
       </label>
       <div class="dialog-actions">
         <button value="save" class="primary">保存</button>

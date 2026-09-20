@@ -31,6 +31,8 @@ let currentRoom = localStorage.getItem(LS_ROOM) || DEFAULT_ROOM;
 let rooms = Api.loadJson(LS_ROOMS, []);
 if (!Array.isArray(rooms)) rooms = [];
 if (!rooms.some((r) => r.id === DEFAULT_ROOM)) rooms.push({ id: DEFAULT_ROOM, players: [] }); // みんなの部屋は常に入室済み
+// 設定ダイアログを開いたときの部屋。入室・作成で閉じた後は currentRoom が変わるので、部屋名の保存先として覚えておく
+let settingsRoom = null;
 
 const els = {
   dex: document.getElementById('dex'),
@@ -57,6 +59,7 @@ const els = {
   joinRoomButton: document.getElementById('joinRoomButton'),
   createRoomButton: document.getElementById('createRoomButton'),
   roomMessage: document.getElementById('roomMessage'),
+  roomNameInput: document.getElementById('roomNameInput'),
 };
 
 const cards = new Map(); // no -> {root, body, key}
@@ -79,6 +82,13 @@ function getPlayer() {
 
 function roomName(id) {
   return id === DEFAULT_ROOM ? 'みんなの部屋' : `部屋 ${id}`;
+}
+
+// 部屋の表示名。自分で付けた名前があれば優先し、共有に使う ID（みんなの部屋は名称）を併記する
+function roomLabel(id) {
+  const room = rooms.find((r) => r.id === id);
+  if (!room || !room.name) return roomName(id);
+  return `${room.name}（${id === DEFAULT_ROOM ? 'みんなの部屋' : id}）`;
 }
 
 // ---- 描画 ----
@@ -281,6 +291,10 @@ function setBusy(busy) {
 
 // ---- 部屋 ----
 
+function saveRooms() {
+  localStorage.setItem(LS_ROOMS, JSON.stringify(rooms));
+}
+
 // 部屋一覧に回答者名（回答数の多い順に最大 5 名）を残し、切替 UI で「誰と遊んだ部屋か」を見せる
 function saveRoomPlayers(perPlayer) {
   const room = rooms.find((r) => r.id === currentRoom);
@@ -292,11 +306,11 @@ function saveRoomPlayers(perPlayer) {
       .slice(0, 5)
       .map(([name]) => name);
   }
-  localStorage.setItem(LS_ROOMS, JSON.stringify(rooms));
+  saveRooms();
 }
 
 function renderRoomBadge() {
-  els.roomBadge.textContent = roomName(currentRoom);
+  els.roomBadge.textContent = roomLabel(currentRoom);
 }
 
 // 入室済みの部屋を最近遊んだ順に並べる（今いる部屋は選べない）
@@ -311,7 +325,7 @@ function renderRoomList() {
     btn.dataset.room = r.id;
     const id = document.createElement('span');
     id.className = 'room-item-id';
-    id.textContent = roomName(r.id);
+    id.textContent = roomLabel(r.id);
     const players = document.createElement('span');
     players.className = 'room-item-players';
     const names = (r.players || []).join('、') || 'まだ回答なし';
@@ -370,7 +384,7 @@ function joinRoom(id) {
   // sync は部屋が無ければ reject するので存在確認を兼ねる。その部屋の未送信分があればここで送られる
   roomAction(async () => {
     enterRoom(id, await Api.sync(id));
-    return `${roomName(id)} に入室しました`;
+    return `${roomLabel(id)} に入室しました`;
   });
 }
 
@@ -466,6 +480,8 @@ function openSettings() {
   els.settingsDialog.returnValue = ''; // 前回の 'save'/'room' が残ると Esc で閉じても保存扱いになる
   els.playerInput.value = getPlayer();
   els.typeHintInput.checked = typeHint;
+  settingsRoom = currentRoom;
+  els.roomNameInput.value = (rooms.find((r) => r.id === currentRoom) || {}).name || '';
   els.roomInput.value = '';
   setRoomMessage('');
   renderRoomList();
@@ -481,6 +497,15 @@ els.settingsDialog.addEventListener('close', () => {
   if (name) localStorage.setItem(LS_PLAYER, name);
   typeHint = els.typeHintInput.checked;
   localStorage.setItem(LS_TYPE_HINT, typeHint ? '1' : '0');
+  // 部屋の名前は設定を開いたときの部屋に付ける（入室・作成で閉じた場合は currentRoom が既に別の部屋）
+  const named = rooms.find((r) => r.id === settingsRoom);
+  if (named) {
+    const roomNameValue = els.roomNameInput.value.trim();
+    if (roomNameValue) named.name = roomNameValue;
+    else delete named.name; // 空にしたら既定の表示（部屋 1234 / みんなの部屋）に戻る
+    saveRooms();
+    renderRoomBadge();
+  }
   applyState(); // 通信を待たずヒント切替を即時反映（refresh 内の applyState はキー一致で no-op）
   if (rv === 'save') refresh(); // 入室直後は取得済みなので再同期しない
 });
@@ -502,7 +527,7 @@ els.roomList.addEventListener('click', (ev) => {
 
 els.resetButton.addEventListener('click', async () => {
   const room = currentRoom;
-  if (!confirm(`${roomName(room)} の全員の進捗をリセットして最初からやり直します。よろしいですか？`)) return;
+  if (!confirm(`${roomLabel(room)} の全員の進捗をリセットして最初からやり直します。よろしいですか？`)) return;
   els.settingsDialog.close('cancel');
   setBusy(true);
   if (await applyResult(room, Api.reset(room))) {

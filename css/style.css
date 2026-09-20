@@ -316,6 +316,11 @@ dialog h2 {
   font-size: 1.05rem;
 }
 
+/* 開いた直後のフォーカス受け先なので、見出しに焦点枠は描かない */
+dialog h2:focus {
+  outline: none;
+}
+
 dialog label {
   display: block;
   font-size: 0.85rem;
@@ -406,9 +411,10 @@ dialog hr {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  flex-wrap: wrap; /* 部屋名が長いときはピルを見出しの下に回す */
 }
 
-/* 現在の部屋を示すピル。ボタンだが小さく丸く */
+/* 現在の部屋を示すピル。ボタンだが小さく丸く。長い部屋名は 1 行で省略する */
 .room-badge {
   padding: 2px 8px;
   font-size: 0.75rem;
@@ -416,6 +422,10 @@ dialog hr {
   border-radius: 999px;
   border-color: var(--accent);
   color: var(--accent);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 dialog h3 {
