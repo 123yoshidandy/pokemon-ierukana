@@ -31,6 +31,8 @@ let currentRoom = localStorage.getItem(LS_ROOM) || DEFAULT_ROOM;
 let rooms = Api.loadJson(LS_ROOMS, []);
 if (!Array.isArray(rooms)) rooms = [];
 if (!rooms.some((r) => r.id === DEFAULT_ROOM)) rooms.push({ id: DEFAULT_ROOM, players: [] }); // みんなの部屋は常に入室済み
+// みんなの部屋は改名不可。以前のバージョンで付いた名前が残っていても捨てる
+delete rooms.find((r) => r.id === DEFAULT_ROOM).name;
 // 設定ダイアログを開いたときの部屋。入室・作成で閉じた後は currentRoom が変わるので、部屋名の保存先として覚えておく
 let settingsRoom = null;
 
@@ -60,6 +62,7 @@ const els = {
   createRoomButton: document.getElementById('createRoomButton'),
   roomMessage: document.getElementById('roomMessage'),
   roomNameInput: document.getElementById('roomNameInput'),
+  roomNameLabel: document.getElementById('roomNameLabel'),
 };
 
 const cards = new Map(); // no -> {root, body, key}
@@ -84,11 +87,11 @@ function roomName(id) {
   return id === DEFAULT_ROOM ? 'みんなの部屋' : `部屋 ${id}`;
 }
 
-// 部屋の表示名。自分で付けた名前があれば優先し、共有に使う ID（みんなの部屋は名称）を併記する
+// 部屋の表示名。自分で付けた名前があれば優先し、共有に使う ID を併記する（みんなの部屋は改名不可なので常に既定名）
 function roomLabel(id) {
   const room = rooms.find((r) => r.id === id);
-  if (!room || !room.name) return roomName(id);
-  return `${room.name}（${id === DEFAULT_ROOM ? 'みんなの部屋' : id}）`;
+  if (id === DEFAULT_ROOM || !room || !room.name) return roomName(id);
+  return `${room.name}（${id}）`;
 }
 
 // ---- 描画 ----
@@ -481,6 +484,7 @@ function openSettings() {
   els.playerInput.value = getPlayer();
   els.typeHintInput.checked = typeHint;
   settingsRoom = currentRoom;
+  els.roomNameLabel.hidden = currentRoom === DEFAULT_ROOM; // みんなの部屋は改名不可なので欄ごと隠す
   els.roomNameInput.value = (rooms.find((r) => r.id === currentRoom) || {}).name || '';
   els.roomInput.value = '';
   setRoomMessage('');
@@ -497,8 +501,8 @@ els.settingsDialog.addEventListener('close', () => {
   if (name) localStorage.setItem(LS_PLAYER, name);
   typeHint = els.typeHintInput.checked;
   localStorage.setItem(LS_TYPE_HINT, typeHint ? '1' : '0');
-  // 部屋の名前は設定を開いたときの部屋に付ける（入室・作成で閉じた場合は currentRoom が既に別の部屋）
-  const named = rooms.find((r) => r.id === settingsRoom);
+  // 部屋の名前は設定を開いたときの部屋に付ける（入室・作成で閉じた場合は currentRoom が既に別の部屋）。みんなの部屋は対象外
+  const named = settingsRoom !== DEFAULT_ROOM && rooms.find((r) => r.id === settingsRoom);
   if (named) {
     const roomNameValue = els.roomNameInput.value.trim();
     if (roomNameValue) named.name = roomNameValue;
