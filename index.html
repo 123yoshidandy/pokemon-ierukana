@@ -13,14 +13,24 @@
       <div class="total-counter"><span id="totalCount">0</span><span class="total-max"> / 1025</span></div>
     </div>
     <form id="answerForm" class="answer-form" autocomplete="off">
-      <input id="answerInput" type="text" placeholder="ポケモンの名前を入力（ひらがなOK）" enterkeyhint="send">
+      <input id="answerInput" type="text" placeholder="ポケモン名を入力" enterkeyhint="send">
       <button type="submit" id="submitButton" class="primary">回答</button>
-      <button type="button" id="refreshButton" title="他の人の回答を取り込む">更新</button>
-      <button type="button" id="settingsButton">設定</button>
+      <button type="button" id="refreshButton" class="icon-button" title="更新（他の人の回答を取り込む）" aria-label="更新">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+      <button type="button" id="settingsButton" class="icon-button" title="設定" aria-label="設定">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </form>
     <p id="feedback" class="feedback"></p>
     <p id="syncStatus" class="sync-status"></p>
-    <p id="playerStats" class="player-stats"></p>
+    <button type="button" id="playerStats" class="player-stats" title="回答履歴を見る" hidden></button>
   </header>
 
   <main id="dex"></main>
@@ -31,12 +41,21 @@
       <label>ニックネーム（回答した人として記録されます）
         <input id="playerInput" type="text" maxlength="20" placeholder="例: かずき">
       </label>
-      <div class="settings-actions">
+      <div class="dialog-actions">
         <button value="save" class="primary">保存</button>
         <button value="cancel" formnovalidate>キャンセル</button>
       </div>
       <hr>
       <button type="button" id="resetButton" class="danger">みんなの進捗を最初からやり直す</button>
+    </form>
+  </dialog>
+
+  <dialog id="historyDialog">
+    <h2>回答履歴</h2>
+    <ul id="historyList" class="history-list"></ul>
+    <p id="historyNote" class="history-note"></p>
+    <form method="dialog" class="dialog-actions">
+      <button>閉じる</button>
     </form>
   </dialog>
 

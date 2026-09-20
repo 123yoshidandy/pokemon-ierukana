@@ -72,7 +72,8 @@ h1 {
 }
 
 #answerInput {
-  flex: 1 1 220px;
+  flex: 1 1 80px;
+  min-width: 0;
   padding: 8px 10px;
   font-size: 16px;
   border: 1px solid var(--border);
@@ -84,7 +85,6 @@ h1 {
   outline-offset: 1px;
   border-color: transparent;
 }
-
 button {
   padding: 8px 14px;
   font-size: 0.9rem;
@@ -102,6 +102,17 @@ button:hover:not(:disabled) {
 button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* アイコンだけのボタン（更新・設定）: テキストボタンと同じ高さの正方形にする */
+button.icon-button {
+  padding: 8px;
+  line-height: 0;
+  color: var(--muted);
+}
+
+button.icon-button svg {
+  display: block;
 }
 
 button.primary {
@@ -124,10 +135,15 @@ button.danger:hover:not(:disabled) {
 }
 
 .feedback {
-  min-height: 1.3em;
   margin: 6px 0 0;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+/* 空のメッセージ行は畳んで、ボタン行と履歴行の間に空行を作らない */
+.feedback:empty,
+.sync-status:empty {
+  display: none;
 }
 
 .feedback.ok { color: #15803d; }
@@ -137,7 +153,6 @@ button.danger:hover:not(:disabled) {
 .sync-status {
   margin: 2px 0 0;
   font-size: 0.75rem;
-  min-height: 1.3em; /* 表示/非表示でヘッダーの高さが変わらないよう常に確保 */
   color: var(--muted);
 }
 
@@ -145,10 +160,32 @@ button.danger:hover:not(:disabled) {
   color: #b45309;
 }
 
+/* 集計行はボタン要素だが、リンク付きのテキスト行として見せる */
 .player-stats {
   margin: 2px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-family: inherit;
   font-size: 0.78rem;
+  text-align: left;
   color: #475569;
+}
+
+.player-stats:hover:not(:disabled) {
+  background: none;
+}
+
+.player-stats-label {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.player-stats:hover .player-stats-label {
+  color: #c62d0b;
 }
 
 /* ---- 図鑑グリッド ---- */
@@ -290,7 +327,7 @@ dialog input {
   border-radius: 8px;
 }
 
-.settings-actions {
+.dialog-actions {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
@@ -301,6 +338,54 @@ dialog hr {
   border: none;
   border-top: 1px solid var(--border);
   margin: 16px 0 12px;
+}
+
+/* ---- 履歴ダイアログ ---- */
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+}
+
+.history-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.history-list li:last-child {
+  border-bottom: none;
+}
+
+.history-time {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.history-name {
+  font-weight: 700;
+}
+
+.history-player {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--muted);
+  word-break: break-all;
+  text-align: right;
+}
+
+.history-note {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 /* ---- フッター ---- */

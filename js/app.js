@@ -35,6 +35,9 @@ const els = {
   settingsDialog: document.getElementById('settingsDialog'),
   playerInput: document.getElementById('playerInput'),
   resetButton: document.getElementById('resetButton'),
+  historyDialog: document.getElementById('historyDialog'),
+  historyList: document.getElementById('historyList'),
+  historyNote: document.getElementById('historyNote'),
 };
 
 const cards = new Map(); // no -> {root, body, key}
@@ -156,15 +159,61 @@ function applyState() {
   updateSyncStatus();
 }
 
+// 人ごとの集計を「履歴」への入り口を兼ねた行として描く（クリックで履歴ダイアログ）
 function renderPlayerStats(perPlayer) {
-  if (!perPlayer.size) {
-    els.playerStats.textContent = '';
-    return;
-  }
+  els.playerStats.hidden = !perPlayer.size;
+  if (!perPlayer.size) return;
   const items = [...perPlayer.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([name, n]) => `${name}: ${n}匹`);
-  els.playerStats.textContent = '貢献 — ' + items.join(' ／ ');
+  const label = document.createElement('span');
+  label.className = 'player-stats-label';
+  label.textContent = '履歴';
+  els.playerStats.textContent = '';
+  els.playerStats.append(label, ' — ' + items.join(' ／ '));
+}
+
+const HISTORY_LIMIT = 50;
+
+// 「M/D HH:MM」形式（当日分も日付付き）
+function formatHistoryTime(ts) {
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+}
+
+function renderHistory() {
+  // applyState と同様に、未送信キューの回答も確定分に重ねて表示する
+  const merged = new Map(serverAnswers);
+  for (const e of Api.pendingEntries()) {
+    if (!merged.has(e.no)) merged.set(e.no, e);
+  }
+  const entries = [...merged.values()].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+  els.historyList.textContent = '';
+  for (const a of entries.slice(0, HISTORY_LIMIT)) {
+    const li = document.createElement('li');
+    const time = document.createElement('span');
+    time.className = 'history-time';
+    time.textContent = formatHistoryTime(a.ts);
+    const name = document.createElement('span');
+    name.className = 'history-name';
+    name.textContent = byNo.has(a.no) ? byNo.get(a.no).name : 'No.' + a.no;
+    const player = document.createElement('span');
+    player.className = 'history-player';
+    player.textContent = a.player;
+    li.append(time, name, player);
+    els.historyList.appendChild(li);
+  }
+
+  if (!entries.length) {
+    els.historyNote.textContent = 'まだ回答がありません';
+  } else if (entries.length > HISTORY_LIMIT) {
+    els.historyNote.textContent = `全${entries.length}件のうち直近${HISTORY_LIMIT}件を表示しています`;
+  } else {
+    els.historyNote.textContent = '';
+  }
 }
 
 // 通常時は何も表示せず、同期エラーが起きているときだけ出す
@@ -252,6 +301,11 @@ els.form.addEventListener('submit', async (ev) => {
 });
 
 els.refreshButton.addEventListener('click', refresh);
+
+els.playerStats.addEventListener('click', () => {
+  renderHistory();
+  els.historyDialog.showModal();
+});
 
 els.settingsButton.addEventListener('click', () => openSettings());
 
