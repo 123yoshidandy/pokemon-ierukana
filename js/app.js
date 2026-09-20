@@ -14,6 +14,7 @@ const GEN_NAMES = {
 const SPRITE_URL = (no) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${no}.png`;
 const LS_PLAYER = 'ierukana.player';
 const LS_CLOSED_GENS = 'ierukana.closedGens';
+const LS_TYPE_HINT = 'ierukana.typeHint';
 
 const nameIndex = buildNameIndex(POKEDEX);
 const byNo = new Map(POKEDEX.map((p) => [p.no, p]));
@@ -35,6 +36,7 @@ const els = {
   settingsDialog: document.getElementById('settingsDialog'),
   playerInput: document.getElementById('playerInput'),
   resetButton: document.getElementById('resetButton'),
+  typeHintInput: document.getElementById('typeHintInput'),
   historyDialog: document.getElementById('historyDialog'),
   historyList: document.getElementById('historyList'),
   historyNote: document.getElementById('historyNote'),
@@ -50,6 +52,9 @@ try {
 } catch {
   closedGens = new Set();
 }
+
+// タイプヒント（未回答マスにタイプを出す）の端末ごとの設定。未設定は OFF
+let typeHint = localStorage.getItem(LS_TYPE_HINT) === '1';
 
 function getPlayer() {
   return (localStorage.getItem(LS_PLAYER) || '').trim();
@@ -96,10 +101,9 @@ function buildGrid() {
     noEl.textContent = 'No.' + String(p.no).padStart(4, '0');
     const bodyEl = document.createElement('div');
     bodyEl.className = 'card-body';
-    bodyEl.textContent = '???';
     card.append(noEl, bodyEl);
     gridEl.appendChild(card);
-    cards.set(p.no, { root: card, body: bodyEl, key: 'hidden|' });
+    cards.set(p.no, { root: card, body: bodyEl, key: '' }); // 空キー: 初回 applyState で必ず描く
   }
   els.dex.appendChild(frag);
 }
@@ -109,6 +113,13 @@ function renderCard(card, p, state, answer) {
   card.body.textContent = '';
   if (state === 'hidden') {
     card.body.textContent = '???';
+    // 古い pokedex.js がキャッシュされていて types が無い場合は ??? だけにする
+    if (typeHint && p.types?.length) {
+      const typesEl = document.createElement('div');
+      typesEl.className = 'card-types';
+      typesEl.textContent = p.types.join(' / ');
+      card.body.append(typesEl);
+    }
     return;
   }
   const img = document.createElement('img');
@@ -146,7 +157,8 @@ function applyState() {
       perPlayer.set(answer.player, (perPlayer.get(answer.player) || 0) + 1);
     }
     const state = answer ? 'answered' : 'hidden';
-    const key = `${state}|${answer ? answer.player : ''}`;
+    // 描画内容を決める要素だけをキーにする（回答済み: 回答者名、未回答: ヒント表示の有無）
+    const key = answer ? `answered|${answer.player}` : `hidden|${typeHint}`;
     const card = cards.get(p.no);
     if (card.key === key) continue;
     card.key = key;
@@ -311,6 +323,7 @@ els.settingsButton.addEventListener('click', () => openSettings());
 
 function openSettings() {
   els.playerInput.value = getPlayer();
+  els.typeHintInput.checked = typeHint;
   els.settingsDialog.showModal();
   if (!getPlayer()) els.playerInput.focus();
 }
@@ -319,6 +332,9 @@ els.settingsDialog.addEventListener('close', () => {
   if (els.settingsDialog.returnValue !== 'save') return;
   const name = els.playerInput.value.trim();
   if (name) localStorage.setItem(LS_PLAYER, name);
+  typeHint = els.typeHintInput.checked;
+  localStorage.setItem(LS_TYPE_HINT, typeHint ? '1' : '0');
+  applyState(); // 通信を待たずヒント切替を即時反映（refresh 内の applyState はキー一致で no-op）
   refresh();
 });
 

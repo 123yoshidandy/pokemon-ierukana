@@ -292,6 +292,15 @@ details.gen[open] .gen-title::before {
   word-break: break-all;
 }
 
+/* タイプヒント: 「???」の下に小さく出す。hidden 側の太字・字間指定を打ち消す */
+.card-types {
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+  word-break: keep-all; /* 「かくとう / エスパー」が幅104pxのカードで語の途中で折れないように */
+}
+
 /* ---- 設定ダイアログ ---- */
 
 dialog {
@@ -318,13 +327,20 @@ dialog label {
   color: #334155;
 }
 
-dialog input {
+dialog input[type="text"] {
   width: 100%;
   margin-top: 4px;
   padding: 8px 10px;
   font-size: 0.95rem;
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+/* チェックボックス行: ラベル文と横並びにする */
+dialog label.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .dialog-actions {
