@@ -62,7 +62,6 @@ const els = {
   createRoomButton: document.getElementById('createRoomButton'),
   roomMessage: document.getElementById('roomMessage'),
   roomNameInput: document.getElementById('roomNameInput'),
-  roomNameLabel: document.getElementById('roomNameLabel'),
 };
 
 const cards = new Map(); // no -> {root, body, key}
@@ -484,8 +483,12 @@ function openSettings() {
   els.playerInput.value = getPlayer();
   els.typeHintInput.checked = typeHint;
   settingsRoom = currentRoom;
-  els.roomNameLabel.hidden = currentRoom === DEFAULT_ROOM; // みんなの部屋は改名不可なので欄ごと隠す
-  els.roomNameInput.value = (rooms.find((r) => r.id === currentRoom) || {}).name || '';
+  // みんなの部屋は改名不可: 欄は出したまま無効化し、欄の中で「変更不可」と示す
+  const isShared = currentRoom === DEFAULT_ROOM;
+  els.roomNameInput.disabled = isShared;
+  els.roomNameInput.value = isShared
+    ? 'みんなの部屋（変更不可）'
+    : (rooms.find((r) => r.id === currentRoom) || {}).name || '';
   els.roomInput.value = '';
   setRoomMessage('');
   renderRoomList();

@@ -337,6 +337,12 @@ dialog input[type="text"] {
   border-radius: 8px;
 }
 
+/* 変更不可の欄（みんなの部屋の名前）は読み取り専用らしく見せる */
+dialog input:disabled {
+  background: var(--bg);
+  color: var(--muted);
+}
+
 /* チェックボックス行: ラベル文と横並びにする */
 dialog label.checkbox-label {
   display: flex;
