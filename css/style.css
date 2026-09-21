@@ -192,15 +192,19 @@ details.gen {
 }
 
 details.gen summary {
+  /* 自分の世代をスクロール中はヘッダー（sticky）の直下に貼り付き、どこからでも折りたためるようにする */
+  position: sticky;
+  top: var(--header-height, 0px);
+  z-index: 1; /* カードより手前、ヘッダー（z-index 10）より奥 */
+  background: var(--bg); /* 貼り付いている間、下を流れるカードが透けないように */
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
   font-size: 1rem;
   font-weight: 700;
-  margin-bottom: 8px;
+  padding: 6px 0 8px 8px; /* 下の間隔は margin でなく padding にして背景で覆う */
   border-left: 4px solid var(--accent);
-  padding-left: 8px;
   cursor: pointer;
   user-select: none;
   list-style: none; /* 既定の三角マーカーは使わず gen-title 側で描く */

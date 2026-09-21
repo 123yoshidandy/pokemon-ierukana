@@ -546,6 +546,12 @@ els.resetButton.addEventListener('click', async () => {
 
 // ---- 起動 ----
 
+// 世代の見出しをヘッダーの直下に固定するため、ヘッダーの高さ（メッセージ行の有無で変わる）を CSS 変数で渡す
+const appHeader = document.querySelector('.app-header');
+new ResizeObserver(() => {
+  document.documentElement.style.setProperty('--header-height', `${appHeader.offsetHeight}px`);
+}).observe(appHeader);
+
 buildGrid();
 renderRoomBadge();
 if (!Api.hasUrl()) {
