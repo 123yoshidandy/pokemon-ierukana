@@ -225,10 +225,25 @@ details.gen[open] .gen-title::before {
   content: '▾';
 }
 
+/* ゲームタイトルは地方名の下の行に控えめに（マーカー ▸ の幅ぶん字下げして地方名の頭と揃える） */
+.gen-games {
+  display: block;
+  margin-left: 1.1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* 同時発売の組は途中で折り返さない（折り返しは「 / 」の境目だけ） */
+.gen-games-group {
+  white-space: nowrap;
+}
+
 .gen-count {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--muted);
+  white-space: nowrap; /* 見出しが長い世代でも匹数は折り返さない */
 }
 
 .grid {

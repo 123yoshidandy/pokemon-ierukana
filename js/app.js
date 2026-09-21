@@ -1,15 +1,17 @@
 'use strict';
 
-const GEN_NAMES = {
-  1: 'カントー',
-  2: 'ジョウト',
-  3: 'ホウエン',
-  4: 'シンオウ',
-  5: 'イッシュ',
-  6: 'カロス',
-  7: 'アローラ',
-  8: 'ガラル・ヒスイ',
-  9: 'パルデア',
+// 世代ごとの地方名とゲームタイトル（見出しに表示）。リメイクやマイナーチェンジ版は載せない。
+// 同時発売は「・」、発売時期が異なる組は「 / 」で区切る
+const GEN_INFO = {
+  1: { region: 'カントー', games: '赤・緑・青・ピカチュウ' },
+  2: { region: 'ジョウト', games: '金・銀・クリスタル' },
+  3: { region: 'ホウエン', games: 'ルビー・サファイア・エメラルド' },
+  4: { region: 'シンオウ', games: 'ダイヤモンド・パール・プラチナ' },
+  5: { region: 'イッシュ', games: 'ブラック・ホワイト' },
+  6: { region: 'カロス', games: 'X・Y' },
+  7: { region: 'アローラ', games: 'サン・ムーン' },
+  8: { region: 'ガラル・ヒスイ', games: 'ソード・シールド / LEGENDS アルセウス' },
+  9: { region: 'パルデア', games: 'スカーレット・バイオレット' },
 };
 const SPRITE_URL = (no) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${no}.png`;
 const LS_PLAYER = 'ierukana.player';
@@ -107,9 +109,23 @@ function buildGrid() {
       details.className = 'gen';
       details.open = !closedGens.has(gen);
       const summary = document.createElement('summary');
+      const info = GEN_INFO[gen] || { region: '', games: '' };
       const title = document.createElement('span');
       title.className = 'gen-title';
-      title.textContent = `第${gen}世代 ${GEN_NAMES[gen] || ''}`;
+      title.textContent = `第${gen}世代 ${info.region}`;
+      if (info.games) {
+        const games = document.createElement('span');
+        games.className = 'gen-games';
+        // 同時発売の組（「 / 」区切り）の途中で折り返さないよう、組ごとに nowrap の span にする
+        info.games.split(' / ').forEach((group, i) => {
+          if (i) games.append(' / ');
+          const groupEl = document.createElement('span');
+          groupEl.className = 'gen-games-group';
+          groupEl.textContent = group;
+          games.appendChild(groupEl);
+        });
+        title.append(' ', games); // 空白で区切り、テキストとしても「カントー 赤・緑」と読めるようにする
+      }
       const count = document.createElement('span');
       count.className = 'gen-count';
       summary.append(title, count);
